@@ -6,6 +6,7 @@
 #include <BWAPI.h>
 
 #include "actor.hpp"
+#include "army.hpp"
 #include "build.hpp"
 #include "common.hpp"
 
@@ -15,11 +16,8 @@ class CamperAI {
 	std::map<BWAPI::Unit, Actor *> actors;
 	Build build;
 	Context ctx;
-	std::set<BWAPI::Unit> army;
-	std::set<BWAPI::Position> enemy_buildings;
+	Army army;
 	void draw_ui();
-	void remember_enemy();
-	void update_army();
 public:
 	CamperAI();
 	~CamperAI();

@@ -36,6 +36,8 @@ bool Factory::assign_task(Context &ctx, Task *task)
 		factory->research(task->what.research);
 		task->state = TaskState::COMPLETE;
 		return true;
+	default:
+		break;
 	}
 
 	return false;

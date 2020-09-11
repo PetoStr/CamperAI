@@ -33,7 +33,7 @@ void SCV::act(Context &ctx)
 				this->task->state = TaskState::COMPLETE;
 			} else {
 				UnitType what = this->task->what.unit;
-				Broodwar << "Building " << what << endl;
+				//Broodwar << "Building " << what << endl;
 
 				bool okhere = Broodwar->canBuildHere(this->task->where,
 								     what,
@@ -43,7 +43,7 @@ void SCV::act(Context &ctx)
 
 				// TODO handle all build failures
 				if (!okhere || !scv->build(what, this->task->where)) {
-					Broodwar << "build failed" << endl;
+					//Broodwar << "build failed" << endl;
 					this->task->state = TaskState::CANT_BUILD_HERE;
 				}
 			}
@@ -60,11 +60,12 @@ bool SCV::assign_task(Context &ctx, Task *task)
 	Unit scv = this->unit;
 
 	if (!scv->isGatheringMinerals()
+	    || !scv->canBuild(task->what.unit, false, false)
 	    || this->state != SCVState::NO_TASK) {
 		return false;
 	}
 
-	Broodwar << "Moving" << endl;
+	//Broodwar << "Moving" << endl;
 	scv->move(Position(task->where));
 	this->task = task;
 	this->state = SCVState::MOVING;

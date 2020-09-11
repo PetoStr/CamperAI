@@ -23,12 +23,12 @@ static TilePosition find_closest_geyser()
 }
 
 // try to find suitable position by testing aroud quad of size `dist`
-static TilePosition try_expand(TilePosition origin, UnitType type, int dist)
+static TilePosition try_expand(Unit builder, TilePosition origin, UnitType type, int dist)
 {
 	for (int y = -dist; y <= dist; y++) {
 		for (int x = -1; x <= 1; x += 2) {
 			TilePosition pos = origin + TilePosition(x, y);
-			if (Broodwar->canBuildHere(pos, type)) {
+			if (Broodwar->canBuildHere(pos, type, builder)) {
 				return pos;
 			}
 		}
@@ -37,7 +37,7 @@ static TilePosition try_expand(TilePosition origin, UnitType type, int dist)
 	return TilePositions::Invalid;
 }
 
-static TilePosition fix_build_tile(UnitType type, TilePosition origin)
+static TilePosition fix_build_tile(Unit builder, UnitType type, TilePosition origin)
 {
 	if (type == UnitTypes::Terran_Refinery) {
 		return origin;
@@ -47,8 +47,9 @@ static TilePosition fix_build_tile(UnitType type, TilePosition origin)
 
 	int dist = 0;
 	while (!pos && dist < 50) {
+		Broodwar->drawCircleMap(Position(pos), 10, Colors::Brown);
 		dist++;
-		pos = try_expand(origin, type, dist);
+		pos = try_expand(builder, origin, type, dist);
 	}
 
 	return pos;
@@ -66,7 +67,7 @@ static TilePosition find_build_tile(UnitType type)
 	}
 
 	if (!Broodwar->canBuildHere(pos, type)) {
-		pos = fix_build_tile(type, pos);
+		pos = fix_build_tile(nullptr, type, pos);
 	}
 
 	return pos;
@@ -249,15 +250,6 @@ void Build::create_build_order(Context &ctx)
 		.where = TilePositions::None,
 		.state = TaskState::UNASSIGNED,
 	});
-	if (ctx.geysers > 1) {
-		this->build_order.push_back(Task {
-			.who = UnitTypes::Terran_SCV,
-			.what = { .unit = UnitTypes::Terran_Starport },
-			.type = TaskType::UNIT,
-			.where = TilePositions::None,
-			.state = TaskState::UNASSIGNED,
-		});
-	}
 	this->build_order.push_back(Task {
 		.who = UnitTypes::Terran_SCV,
 		.what = { .unit = UnitTypes::Terran_Science_Facility },
@@ -293,7 +285,21 @@ void Build::create_build_order(Context &ctx)
 		.where = TilePositions::None,
 		.state = TaskState::UNASSIGNED,
 	});
+	this->build_order.push_back(Task {
+		.who = UnitTypes::Terran_Armory,
+		.what = { .upgrade = UpgradeTypes::Terran_Ship_Weapons },
+		.type = TaskType::UPGRADE,
+		.where = TilePositions::None,
+		.state = TaskState::UNASSIGNED,
+	});
 	if (ctx.geysers > 1) {
+		this->build_order.push_back(Task {
+			.who = UnitTypes::Terran_SCV,
+			.what = { .unit = UnitTypes::Terran_Starport },
+			.type = TaskType::UNIT,
+			.where = TilePositions::None,
+			.state = TaskState::UNASSIGNED,
+		});
 		this->build_order.push_back(Task {
 			.who = UnitTypes::Terran_Starport,
 			.what = { .unit = UnitTypes::Terran_Control_Tower },
@@ -302,6 +308,41 @@ void Build::create_build_order(Context &ctx)
 			.state = TaskState::UNASSIGNED,
 		});
 	}
+	this->build_order.push_back(Task {
+		.who = UnitTypes::Terran_Armory,
+		.what = { .upgrade = UpgradeTypes::Terran_Ship_Weapons },
+		.type = TaskType::UPGRADE,
+		.where = TilePositions::None,
+		.state = TaskState::UNASSIGNED,
+	});
+	this->build_order.push_back(Task {
+		.who = UnitTypes::Terran_Armory,
+		.what = { .upgrade = UpgradeTypes::Terran_Ship_Weapons },
+		.type = TaskType::UPGRADE,
+		.where = TilePositions::None,
+		.state = TaskState::UNASSIGNED,
+	});
+	this->build_order.push_back(Task {
+		.who = UnitTypes::Terran_Armory,
+		.what = { .upgrade = UpgradeTypes::Terran_Ship_Plating },
+		.type = TaskType::UPGRADE,
+		.where = TilePositions::None,
+		.state = TaskState::UNASSIGNED,
+	});
+	this->build_order.push_back(Task {
+		.who = UnitTypes::Terran_Armory,
+		.what = { .upgrade = UpgradeTypes::Terran_Ship_Plating },
+		.type = TaskType::UPGRADE,
+		.where = TilePositions::None,
+		.state = TaskState::UNASSIGNED,
+	});
+	this->build_order.push_back(Task {
+		.who = UnitTypes::Terran_Armory,
+		.what = { .upgrade = UpgradeTypes::Terran_Ship_Plating },
+		.type = TaskType::UPGRADE,
+		.where = TilePositions::None,
+		.state = TaskState::UNASSIGNED,
+	});
 }
 
 void Build::notify_actor(Task *task)
@@ -408,6 +449,7 @@ static Actor *give_order(Task *task, Context &ctx, map<Unit, Actor *> &actors)
 
 		auto actor = actors[unit];
 		if (actor && actor->assign_task(ctx, task)) {
+			task->assigned_unit = unit;
 			return actor;
 		}
 	}
@@ -454,6 +496,25 @@ bool Build::assign_research_task(Task *task, Context &ctx, map<Unit, Actor *> &a
 	return false;
 }
 
+bool Build::assign_upgrade_task(Task *task, Context &ctx, map<Unit, Actor *> &actors)
+{
+	Actor *actor = give_order(task, ctx, actors);
+	if (actor && task->what.unit.isBuilding()) {
+		return true;
+	}
+
+	Unitset units = Broodwar->self()->getUnits();
+	for (auto &unit : units) {
+		if (unit->getType() == task->who
+				&& unit->upgrade(task->what.upgrade)) {
+			task->state = TaskState::COMPLETE;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool Build::assign_task(Task *task, Context &ctx, map<Unit, Actor *> &actors)
 {
 	int mineral_price;
@@ -467,6 +528,10 @@ bool Build::assign_task(Task *task, Context &ctx, map<Unit, Actor *> &actors)
 			mineral_price = task->what.research.mineralPrice();
 			gas_price = task->what.research.gasPrice();
 			break;
+		case TaskType::UPGRADE:
+			mineral_price = task->what.upgrade.mineralPrice();
+			gas_price = task->what.upgrade.gasPrice();
+			break;
 	}
 
 	if (ctx.get_minerals() >= mineral_price
@@ -476,6 +541,8 @@ bool Build::assign_task(Task *task, Context &ctx, map<Unit, Actor *> &actors)
 				return this->assign_unit_task(task, ctx, actors);
 			case TaskType::RESEARCH:
 				return this->assign_research_task(task, ctx, actors);
+			case TaskType::UPGRADE:
+				return this->assign_upgrade_task(task, ctx, actors);
 		}
 	}
 
@@ -501,14 +568,15 @@ void Build::handle_build_order(Context &ctx, map<Unit, Actor *> &actors)
 				++it;
 				break;
 			case TaskState::COMPLETE:
-				if (it->type == TaskType::RESEARCH) {
+				if (it->type == TaskType::RESEARCH
+						|| it->type == TaskType::UPGRADE) {
 					it = this->build_order.erase(it);
 				} else {
 					++it;
 				}
 				break;
 			case TaskState::CANT_BUILD_HERE:
-				it->where = fix_build_tile(it->what.unit, it->where);
+				it->where = fix_build_tile(it->assigned_unit, it->what.unit, it->where);
 				++it;
 				break;
 		}

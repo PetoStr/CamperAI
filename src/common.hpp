@@ -28,6 +28,7 @@ inline const char *task_state_str(TaskState &state)
 enum class TaskType {
 	UNIT,
 	RESEARCH,
+	UPGRADE,
 };
 
 struct Task {
@@ -36,11 +37,14 @@ struct Task {
 	union {
 		BWAPI::UnitType unit;
 		BWAPI::TechType research;
+		BWAPI::UpgradeType upgrade;
 	} what;
 	TaskType type;
 
 	BWAPI::TilePosition where;
 	TaskState state;
+
+	BWAPI::Unit assigned_unit;
 };
 
 struct Context {

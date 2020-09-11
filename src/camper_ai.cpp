@@ -59,6 +59,9 @@ void draw_build_order(list<Task> &build_order)
 			case TaskType::RESEARCH:
 				what = task.what.research.c_str();
 				break;
+			case TaskType::UPGRADE:
+				what = task.what.upgrade.c_str();
+				break;
 		}
 
 		Broodwar->drawTextScreen(5, 16 * line, "%s: %s (%s)",
@@ -165,6 +168,11 @@ void CamperAI::on_unit_complete(Unit unit)
 	switch (unit->getType()) {
 		case UnitTypes::Terran_Supply_Depot:
 			break;
+		case UnitTypes::Terran_Engineering_Bay:
+			// save space
+			unit->lift();
+			BWEB::Map::onUnitDestroy(unit);
+			break;
 		case UnitTypes::Terran_Refinery:
 			send_workers_to_refinery(unit);
 			break;
@@ -194,8 +202,9 @@ void CamperAI::on_unit_complete(Unit unit)
 			this->actors[unit] = new ScienceFacility(unit);
 			break;
 		case UnitTypes::Terran_Battlecruiser:
-			this->actors[unit] = new Battlecruiser(unit);
-			this->army.insert(unit);
+			ArmyUnit *bc = new Battlecruiser(unit);
+			this->actors[unit] = bc;
+			this->army.on_unit_complete(unit, bc);
 			break;
 	}
 }
@@ -221,13 +230,8 @@ void CamperAI::on_unit_morph(Unit unit)
 
 void CamperAI::on_unit_destroy(Unit unit)
 {
-	switch (unit->getType()) {
-		case UnitTypes::Terran_Battlecruiser:
-			this->army.erase(unit);
-			break;
-	}
-
 	this->build.on_unit_destroy(this->ctx, unit);
+	this->army.on_unit_destroy(unit);
 
 	BWEB::Map::onUnitDestroy(unit);
 
@@ -253,62 +257,23 @@ void CamperAI::draw_ui()
 
 	draw_build_order(this->build.get_build_order());
 
+	Position pos = Position(BWEB::Map::getMainChoke()->Center());
+
 	//draw_stats();
 	Broodwar->drawTextScreen(300, 0, "APM: %d", Broodwar->getAPM());
 	Broodwar->drawTextScreen(300, 16, "FRAME: %d", Broodwar->getFrameCount());
-	Broodwar->drawTextScreen(300, 32, "Enemy buildings: %d",
-			this->enemy_buildings.size());
-}
-
-void CamperAI::remember_enemy()
-{
-	for (auto &enemy : Broodwar->enemies()) {
-		for (auto &unit : enemy->getUnits()) {
-			if (unit->getType().isBuilding()) {
-				this->enemy_buildings.insert(unit->getPosition());
-			}
-		}
-	}
-
-	auto it = this->enemy_buildings.begin();
-	while (it != this->enemy_buildings.end()) {
-		if (!Broodwar->isVisible(TilePosition(*it))) continue;
-
-		bool ok = false;
-		for (auto &enemy : Broodwar->enemies()) {
-			for (auto &unit : enemy->getUnits()) {
-				if (!unit->getType().isBuilding()) continue;
-				if (unit->getPosition() == *it) {
-					ok = true;
-					break;
-				}
-			}
-		}
-
-		if (ok) {
-			++it;
-		} else {
-			it = this->enemy_buildings.erase(it);
-		}
-	}
-}
-
-void CamperAI::update_army()
-{
 }
 
 void CamperAI::update()
 {
 	this->draw_ui();
 
-	//this->remember_enemy();
-	this->update_army();
-
 	if (Broodwar->getFrameCount() % Broodwar->getLatency() != 0) {
 		return;
 	}
 
 	this->build.handle_build_order(this->ctx, this->actors);
+	this->army.update();
 
 	for (auto &unit : Broodwar->self()->getUnits()) {
 		if (!unit->exists()) continue;
@@ -368,6 +333,8 @@ void CamperAI::init()
 	Broodwar << "Walls: " << BWEB::Walls::getWalls().size() << endl;
 
 	srand(chrono::steady_clock::now().time_since_epoch().count());
+
+	this->army.init();
 
 	show_bullets = false;
 	show_visibility_data = false;

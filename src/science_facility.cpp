@@ -26,6 +26,8 @@ bool ScienceFacility::assign_task(Context &ctx, Task *task)
 		sf->research(task->what.research);
 		task->state = TaskState::COMPLETE;
 		return true;
+	default:
+		break;
 	}
 
 	return false;

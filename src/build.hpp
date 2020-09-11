@@ -19,6 +19,7 @@ class Build {
 	void remove_build_type(BWAPI::UnitType type);
 	bool assign_unit_task(Task *task, Context &ctx, std::map<BWAPI::Unit, Actor *> &actors);
 	bool assign_research_task(Task *task, Context &ctx, std::map<BWAPI::Unit, Actor *> &actors);
+	bool assign_upgrade_task(Task *task, Context &ctx, std::map<BWAPI::Unit, Actor *> &actors);
 public:
 	void create_wall();
 	void create_build_order(Context &ctx);
