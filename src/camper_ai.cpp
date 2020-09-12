@@ -15,6 +15,7 @@
 #include "battlecruiser.hpp"
 #include "camper_ai.hpp"
 #include "command_center.hpp"
+#include "comsat.hpp"
 #include "factory.hpp"
 #include "marine.hpp"
 #include "science_facility.hpp"
@@ -168,11 +169,6 @@ void CamperAI::on_unit_complete(Unit unit)
 	switch (unit->getType()) {
 		case UnitTypes::Terran_Supply_Depot:
 			break;
-		case UnitTypes::Terran_Engineering_Bay:
-			// save space
-			unit->lift();
-			BWEB::Map::onUnitDestroy(unit);
-			break;
 		case UnitTypes::Terran_Refinery:
 			send_workers_to_refinery(unit);
 			break;
@@ -200,6 +196,9 @@ void CamperAI::on_unit_complete(Unit unit)
 			break;
 		case UnitTypes::Terran_Science_Facility:
 			this->actors[unit] = new ScienceFacility(unit);
+			break;
+		case UnitTypes::Terran_Comsat_Station:
+			this->actors[unit] = new Comsat(unit);
 			break;
 		case UnitTypes::Terran_Battlecruiser:
 			ArmyUnit *bc = new Battlecruiser(unit);
@@ -235,6 +234,11 @@ void CamperAI::on_unit_destroy(Unit unit)
 
 	BWEB::Map::onUnitDestroy(unit);
 
+	Actor *actor = this->actors[unit];
+	if (actor) {
+		actor->on_destroy();
+	}
+
 	try {
 		if (unit->getType().isMineralField())
 			game_map.OnMineralDestroyed(unit);
@@ -247,7 +251,7 @@ void CamperAI::on_unit_destroy(Unit unit)
 
 void CamperAI::draw_ui()
 {
-	//draw_game_map();
+	draw_game_map();
 
 	if (show_bullets)
 		drawBullets();
@@ -256,8 +260,6 @@ void CamperAI::draw_ui()
 		drawVisibilityData();
 
 	draw_build_order(this->build.get_build_order());
-
-	Position pos = Position(BWEB::Map::getMainChoke()->Center());
 
 	//draw_stats();
 	Broodwar->drawTextScreen(300, 0, "APM: %d", Broodwar->getAPM());
@@ -309,7 +311,8 @@ void CamperAI::init()
 	// Uncomment to enable complete map information
 	//Broodwar->enableFlag(Flag::CompleteMapInformation);
 
-	Broodwar->setLocalSpeed(20);
+	//Broodwar->setLocalSpeed(20);
+	Broodwar->setLocalSpeed(0);
 
 	try {
 		Broodwar << "Map init..." << endl;

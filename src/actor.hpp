@@ -22,6 +22,10 @@ public:
 	virtual void on_task_completion()
 	{
 	}
+
+	virtual void on_destroy()
+	{
+	}
 };
 
 #endif

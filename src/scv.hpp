@@ -20,6 +20,7 @@ public:
 	void act(Context &ctx);
 	bool assign_task(Context &ctx, Task *task);
 	void on_task_completion();
+	void on_destroy();
 };
 
 #endif

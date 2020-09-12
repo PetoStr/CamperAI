@@ -16,6 +16,7 @@ class Army {
 	void handle_guard();
 	BWAPI::Position get_guard_pos();
 	BWAPI::Position get_attack_pos();
+	BWAPI::Position get_possible_enemy_loc();
 	bool some_units_in_pos();
 public:
 	void init();

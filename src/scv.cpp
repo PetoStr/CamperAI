@@ -25,7 +25,11 @@ void SCV::act(Context &ctx)
 			break;
 		case SCVState::MOVING:
 			if (scv->isIdle()) {
-				state = SCVState::BUILDING;
+				if (scv->getDistance(Position(this->task->where)) <= 160) {
+					state = SCVState::BUILDING;
+				} else {
+					scv->move(Position(this->task->where));
+				}
 			}
 			break;
 		case SCVState::BUILDING:
@@ -36,9 +40,9 @@ void SCV::act(Context &ctx)
 				//Broodwar << "Building " << what << endl;
 
 				bool okhere = Broodwar->canBuildHere(this->task->where,
-								     what,
-								     scv,
-								     true);
+						what,
+						scv,
+						true);
 
 
 				// TODO handle all build failures
@@ -59,9 +63,9 @@ bool SCV::assign_task(Context &ctx, Task *task)
 
 	Unit scv = this->unit;
 
-	if (!scv->isGatheringMinerals()
-	    || !scv->canBuild(task->what.unit, false, false)
-	    || this->state != SCVState::NO_TASK) {
+	if ((!scv->isGatheringMinerals() && !scv->isIdle())
+			|| !scv->canBuild(task->what.unit, false, false)
+			|| this->state != SCVState::NO_TASK) {
 		return false;
 	}
 
@@ -78,5 +82,14 @@ bool SCV::assign_task(Context &ctx, Task *task)
 void SCV::on_task_completion()
 {
 	this->task = nullptr;
+	this->state = SCVState::NO_TASK;
+}
+
+void SCV::on_destroy()
+{
+	if (this->task) {
+		this->task->state = TaskState::UNASSIGNED;
+		this->task = nullptr;
+	}
 	this->state = SCVState::NO_TASK;
 }

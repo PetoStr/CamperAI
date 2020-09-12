@@ -20,6 +20,9 @@ class Build {
 	bool assign_unit_task(Task *task, Context &ctx, std::map<BWAPI::Unit, Actor *> &actors);
 	bool assign_research_task(Task *task, Context &ctx, std::map<BWAPI::Unit, Actor *> &actors);
 	bool assign_upgrade_task(Task *task, Context &ctx, std::map<BWAPI::Unit, Actor *> &actors);
+	BWAPI::TilePosition find_build_tile(BWAPI::UnitType type);
+	BWAPI::TilePosition fix_build_tile(BWAPI::Unit builder,
+			BWAPI::UnitType type, BWAPI::TilePosition origin);
 public:
 	void create_wall();
 	void create_build_order(Context &ctx);

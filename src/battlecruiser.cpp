@@ -22,7 +22,7 @@ void Battlecruiser::act(Context &ctx)
 			}
 			break;
 		case Orders::Guard:
-			if (bc->getPosition().getDistance(this->order.where) > 200) {
+			if (bc->getPosition().getDistance(this->order.where) > 300) {
 				bc->attack(this->order.where);
 			}
 			break;

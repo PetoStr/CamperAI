@@ -16,3 +16,21 @@ void CommandCenter::act(Context &ctx)
 		this->unit->train(UnitTypes::Terran_SCV);
 	}
 }
+
+bool CommandCenter::assign_task(Context &ctx, Task *task)
+{
+	if (task->type != TaskType::UNIT) {
+		return false;
+	}
+
+	Unit cc = this->unit;
+	UnitType what = task->what.unit;
+
+	if ((cc->canBuildAddon() && cc->buildAddon(what))
+	    || (cc->canTrain(what) && cc->train(what))) {
+		task->state = TaskState::COMPLETE;
+		return true;
+	}
+
+	return false;
+}

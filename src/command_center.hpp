@@ -11,6 +11,7 @@ class CommandCenter: public Actor {
 public:
 	CommandCenter(BWAPI::Unit);
 	void act(Context &ctx);
+	bool assign_task(Context &ctx, Task *task);
 };
 
 #endif
