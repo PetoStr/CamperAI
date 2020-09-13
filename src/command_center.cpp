@@ -26,8 +26,15 @@ bool CommandCenter::assign_task(Context &ctx, Task *task)
 	Unit cc = this->unit;
 	UnitType what = task->what.unit;
 
-	if ((cc->canBuildAddon() && cc->buildAddon(what))
-	    || (cc->canTrain(what) && cc->train(what))) {
+	if (what.isAddon() && !cc->getAddon()) {
+		if (cc->buildAddon(what)) {
+			task->state = TaskState::COMPLETE;
+			return true;
+		} else {
+			task->state = TaskState::ADDON_BLOCKED;
+			return false;
+		}
+	} else if (cc->canTrain(what) && cc->train(what)) {
 		task->state = TaskState::COMPLETE;
 		return true;
 	}

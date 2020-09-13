@@ -47,7 +47,7 @@ void send_workers_to_refinery(Unit refinery)
 	}
 }
 
-void draw_build_order(list<Task> &build_order)
+void draw_build_order(const list<Task> &build_order)
 {
 	int line = 1;
 	Broodwar->drawTextScreen(5, 0, "Build order:");

@@ -16,9 +16,14 @@ bool ScienceFacility::assign_task(Context &ctx, Task *task)
 
 	switch (task->type) {
 	case TaskType::UNIT:
-		if (sf->canBuildAddon() && sf->buildAddon(task->what.unit)) {
-			task->state = TaskState::COMPLETE;
-			return true;
+		if (!sf->getAddon()) {
+			if (sf->buildAddon(task->what.unit)) {
+				task->state = TaskState::COMPLETE;
+				return true;
+			} else {
+				task->state = TaskState::ADDON_BLOCKED;
+				return false;
+			}
 		}
 
 		return false;

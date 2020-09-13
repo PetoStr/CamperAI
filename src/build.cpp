@@ -631,10 +631,13 @@ void Build::handle_build_order(Context &ctx, map<Unit, Actor *> &actors)
 	while (iterate && it != this->build_order.end()) {
 		switch (it->state) {
 			case TaskState::UNASSIGNED:
+			case TaskState::ADDON_BLOCKED:
 				if (this->assign_task(&(*it), ctx, actors)) {
 					++it;
-				} else {
+				} else if (it->state == TaskState::UNASSIGNED) {
 					iterate = false;
+				} else if (it->state == TaskState::ADDON_BLOCKED) {
+					++it;
 				}
 				break;
 			case TaskState::PENDING_BUILD:
@@ -660,7 +663,7 @@ void Build::handle_build_order(Context &ctx, map<Unit, Actor *> &actors)
 	}
 }
 
-list<Task> &Build::get_build_order()
+const list<Task> &Build::get_build_order()
 {
 	return this->build_order;
 }

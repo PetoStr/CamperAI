@@ -14,10 +14,6 @@ Factory::Factory(Unit _unit) : unit(_unit)
 
 void Factory::act(Context &ctx)
 {
-	/*if (!this->unit->isTraining() && ctx.get_minerals() >= 150
-	    && ctx.get_gas() >= 50) {
-		this->unit->train(UnitTypes::Terran_Siege_Tank_Tank_Mode);
-	}*/
 }
 
 bool Factory::assign_task(Context &ctx, Task *task)
@@ -26,8 +22,16 @@ bool Factory::assign_task(Context &ctx, Task *task)
 
 	switch (task->type) {
 	case TaskType::UNIT:
-		if ((factory->canBuildAddon() && factory->buildAddon(task->what.unit))
-		    || (factory->canTrain(task->what.unit) && factory->train(task->what.unit))) {
+		if (task->what.unit.isAddon() && !factory->getAddon()) {
+			if (factory->buildAddon(task->what.unit)) {
+				task->state = TaskState::COMPLETE;
+				return true;
+			} else {
+				task->state = TaskState::ADDON_BLOCKED;
+				return false;
+			}
+		} else if (factory->canTrain(task->what.unit)
+			   && factory->train(task->what.unit)) {
 			task->state = TaskState::COMPLETE;
 			return true;
 		}

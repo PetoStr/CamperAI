@@ -31,7 +31,7 @@ public:
 	void on_unit_complete(Context &ctx, BWAPI::Unit unit);
 	void on_unit_morph(Context &ctx, BWAPI::Unit unit);
 	void on_unit_destroy(Context &ctx, BWAPI::Unit unit);
-	std::list<Task> &get_build_order();
+	const std::list<Task> &get_build_order();
 };
 
 #endif

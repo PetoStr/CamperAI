@@ -1,7 +1,5 @@
 #include "army.hpp"
 
-#include <cfloat>
-
 #include <BWEB.h>
 
 #include "battlecruiser.hpp"
@@ -26,7 +24,7 @@ void Army::order_all()
 
 void Army::handle_guard()
 {
-	if (this->units.size() >= 5 && this->some_units_in_pos()) {
+	if (this->get_units_in_pos() >= 5) {
 		this->last_order.type = Orders::AttackMove;
 		this->last_order.where = this->get_attack_pos();
 		this->order_all();
@@ -39,7 +37,7 @@ void Army::handle_attack()
 		this->last_order.type = Orders::Guard;
 		this->last_order.where = this->get_guard_pos();
 		this->order_all();
-	} else if (this->some_units_in_pos()) {
+	} else if (this->get_units_in_pos() >= 3) {
 		Position attack_pos = this->get_attack_pos();
 		if (attack_pos != this->last_order.where) {
 			this->last_order.where = attack_pos;
@@ -84,7 +82,7 @@ Position Army::get_guard_pos()
 {
 
 	Position choke = Position(BWEB::Map::getMainChoke()->Center());
-	double best_dist = DBL_MAX;
+	double best_dist = numeric_limits<double>::infinity();
 	Position best = Positions::Invalid;
 	for (auto &unit : Broodwar->self()->getUnits()) {
 		if (unit->getType() == UnitTypes::Terran_Bunker) {
@@ -108,7 +106,7 @@ Position Army::get_possible_enemy_loc()
 	TilePosition base = Broodwar->self()->getStartLocation();
 	TilePosition here = TilePosition(this->last_order.where);
 	TilePosition best = TilePositions::Invalid;
-	double best_dist = DBL_MAX;
+	double best_dist = numeric_limits<double>::infinity();
 	for (TilePosition pos : Broodwar->getStartLocations()) {
 		if (pos != base && !Broodwar->isExplored(pos)) {
 			double dist = here.getDistance(pos);
@@ -133,7 +131,7 @@ Position Army::get_attack_pos()
 	}
 
 	Position best = Positions::Invalid;
-	double best_dist = DBL_MAX;
+	double best_dist = numeric_limits<double>::infinity();
 	for (Position pos : this->enemy_buildings) {
 		double dist = this->last_order.where.getDistance(pos);
 		if (dist < best_dist) {
@@ -145,7 +143,7 @@ Position Army::get_attack_pos()
 	return best;
 }
 
-bool Army::some_units_in_pos()
+int Army::get_units_in_pos()
 {
 	int cn = 0;
 	for (auto &it : this->units) {
@@ -155,7 +153,7 @@ bool Army::some_units_in_pos()
 		}
 	}
 
-	return cn >= 5;
+	return cn;
 }
 
 void Army::remember_enemy()

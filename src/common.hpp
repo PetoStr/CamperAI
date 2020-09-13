@@ -8,9 +8,10 @@ enum class TaskState {
 	PENDING_BUILD,
 	COMPLETE,
 	CANT_BUILD_HERE,
+	ADDON_BLOCKED,
 };
 
-inline const char *task_state_str(TaskState &state)
+inline const char *task_state_str(const TaskState &state)
 {
 	switch (state) {
 		case TaskState::UNASSIGNED:
@@ -21,6 +22,8 @@ inline const char *task_state_str(TaskState &state)
 			return "COMPLETE";
 		case TaskState::CANT_BUILD_HERE:
 			return "CANT_BUILD_HERE";
+		case TaskState::ADDON_BLOCKED:
+			return "ADDON_BLOCKED";
 	}
 	return "UNKNOWN";
 }
