@@ -12,7 +12,7 @@ void Marine::act(Context &ctx)
 
 	Player player = Broodwar->self();
 
-	// TODO: find a better alternative
+	// load marine into bunker
 	for (auto &unit : player->getUnits()) {
 		if (unit->getType() != UnitTypes::Terran_Bunker
 			|| !unit->isCompleted()) {

@@ -15,8 +15,7 @@ Starport::Starport(Unit _unit) : unit(_unit)
 void Starport::act(Context &ctx)
 {
 	UnitType bc = UnitTypes::Terran_Battlecruiser;
-	if (!this->unit->isTraining() && ctx.get_minerals() >= bc.mineralPrice()
-	    && ctx.get_gas() >= bc.gasPrice()) {
+	if (!this->unit->isTraining() && ctx.has_enough_resources(bc)) {
 		this->unit->train(bc);
 	}
 }

@@ -2,12 +2,13 @@
 #define __ARMY_HPP__
 
 #include <map>
+#include <memory>
 #include <set>
 
 #include "army_unit.hpp"
 
 class Army {
-	std::map<BWAPI::Unit, ArmyUnit *> units;
+	ArmyUnitMap units;
 	std::set<BWAPI::Position> enemy_buildings;
 	ArmyOrder last_order;
 	void remember_enemy();
@@ -21,7 +22,7 @@ class Army {
 public:
 	void init();
 	void update();
-	void on_unit_complete(BWAPI::Unit unit, ArmyUnit *army_unit);
+	void on_unit_complete(BWAPI::Unit unit, std::shared_ptr<ArmyUnit> army_unit);
 	void on_unit_destroy(BWAPI::Unit unit);
 };
 

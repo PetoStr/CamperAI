@@ -1,11 +1,14 @@
 #ifndef __ACTOR_HPP__
 #define __ACTOR_HPP__
 
+#include <memory>
+
 #include "common.hpp"
+#include "task.hpp"
 
 class Actor {
 public:
-	virtual ~Actor() {}
+	virtual ~Actor() = default;
 	virtual void act(Context &ctx) = 0;
 
 	/*
@@ -27,5 +30,7 @@ public:
 	{
 	}
 };
+
+typedef std::map<BWAPI::Unit, std::shared_ptr<Actor>> ActorMap;
 
 #endif

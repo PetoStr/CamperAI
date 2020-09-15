@@ -9,8 +9,8 @@ class Starport: public Actor {
 	BWAPI::Unit unit;
 public:
 	Starport(BWAPI::Unit);
-	void act(Context &ctx);
-	bool assign_task(Context &ctx, Task *task);
+	void act(Context &ctx) override;
+	bool assign_task(Context &ctx, Task *task) override;
 };
 
 #endif

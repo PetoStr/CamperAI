@@ -13,4 +13,6 @@ public:
 	virtual void receive_order(ArmyOrder &order) = 0;
 };
 
+typedef std::map<BWAPI::Unit, std::shared_ptr<ArmyUnit>> ArmyUnitMap;
+
 #endif

@@ -7,6 +7,12 @@
 using namespace BWAPI;
 using namespace std;
 
+const int MIN_UNITS_TO_ATTACK = 5;
+const int RETREAT_THRESHOLD = 2;
+
+const int TARGET_POS_AREA = 200;
+const int REQUIRED_UNITS_IN_AREA = 3;
+
 void Army::init()
 {
 	this->last_order = ArmyOrder {
@@ -24,7 +30,7 @@ void Army::order_all()
 
 void Army::handle_guard()
 {
-	if (this->get_units_in_pos() >= 5) {
+	if (this->get_units_in_pos() >= MIN_UNITS_TO_ATTACK) {
 		this->last_order.type = Orders::AttackMove;
 		this->last_order.where = this->get_attack_pos();
 		this->order_all();
@@ -33,11 +39,11 @@ void Army::handle_guard()
 
 void Army::handle_attack()
 {
-	if (this->units.size() <= 2) {
+	if (this->units.size() <= RETREAT_THRESHOLD) {
 		this->last_order.type = Orders::Guard;
 		this->last_order.where = this->get_guard_pos();
 		this->order_all();
-	} else if (this->get_units_in_pos() >= 3) {
+	} else if (this->get_units_in_pos() >= REQUIRED_UNITS_IN_AREA) {
 		Position attack_pos = this->get_attack_pos();
 		if (attack_pos != this->last_order.where) {
 			this->last_order.where = attack_pos;
@@ -62,7 +68,7 @@ void Army::update()
 	}
 }
 
-void Army::on_unit_complete(Unit unit, ArmyUnit *army_unit)
+void Army::on_unit_complete(Unit unit, shared_ptr<ArmyUnit> army_unit)
 {
 	// update guard pos at least when new army unit is created
 	if (this->last_order.type == Orders::Guard) {
@@ -148,7 +154,7 @@ int Army::get_units_in_pos()
 	int cn = 0;
 	for (auto &it : this->units) {
 		int dist = it.first->getDistance(this->last_order.where);
-		if (dist < 200) {
+		if (dist < TARGET_POS_AREA) {
 			cn++;
 		}
 	}

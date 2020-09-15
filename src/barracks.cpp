@@ -2,6 +2,8 @@
 
 using namespace BWAPI;
 
+const int MARINES_PER_BUNKER = 4;
+
 Barracks::Barracks(Unit _unit) : unit(_unit)
 {
 }
@@ -9,12 +11,15 @@ Barracks::Barracks(Unit _unit) : unit(_unit)
 void Barracks::act(Context &ctx)
 {
 	Player player = Broodwar->self();
+	Unit barracks = this->unit;
+	UnitType marine = UnitTypes::Terran_Marine;
 	int bunkers = player->allUnitCount(UnitTypes::Terran_Bunker);
-	if (player->allUnitCount(UnitTypes::Terran_Marine) >= bunkers * 4) {
-		return;
-	}
+	int marines = player->allUnitCount(marine);
 
-	if (!this->unit->isTraining() && ctx.get_minerals() >= 50) {
-		this->unit->train(UnitTypes::Terran_Marine);
+	if (marines < bunkers * MARINES_PER_BUNKER) {
+		bool training = barracks->isTraining();
+		if (!training && ctx.has_enough_resources(marine)) {
+			this->unit->train(marine);
+		}
 	}
 }

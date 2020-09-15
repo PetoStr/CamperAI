@@ -17,10 +17,10 @@ class SCV: public Actor {
 	SCVState state;
 public:
 	SCV(BWAPI::Unit);
-	void act(Context &ctx);
-	bool assign_task(Context &ctx, Task *task);
-	void on_task_completion();
-	void on_destroy();
+	void act(Context &ctx) override;
+	bool assign_task(Context &ctx, Task *task) override;
+	void on_task_completion() override;
+	void on_destroy() override;
 };
 
 #endif

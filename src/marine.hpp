@@ -9,7 +9,7 @@ class Marine: public Actor {
 	BWAPI::Unit unit;
 public:
 	Marine(BWAPI::Unit);
-	void act(Context &ctx);
+	void act(Context &ctx) override;
 };
 
 #endif

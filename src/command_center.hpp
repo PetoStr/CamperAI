@@ -10,8 +10,8 @@ class CommandCenter: public Actor {
 	int max_workers;
 public:
 	CommandCenter(BWAPI::Unit);
-	void act(Context &ctx);
-	bool assign_task(Context &ctx, Task *task);
+	void act(Context &ctx) override;
+	bool assign_task(Context &ctx, Task *task) override;
 };
 
 #endif

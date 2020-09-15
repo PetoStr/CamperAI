@@ -3,52 +3,7 @@
 
 #include <BWAPI.h>
 
-enum class TaskState {
-	UNASSIGNED,
-	PENDING_BUILD,
-	COMPLETE,
-	CANT_BUILD_HERE,
-	ADDON_BLOCKED,
-};
-
-inline const char *task_state_str(const TaskState &state)
-{
-	switch (state) {
-		case TaskState::UNASSIGNED:
-			return "UNASSIGNED";
-		case TaskState::PENDING_BUILD:
-			return "PENDING_BUILD";
-		case TaskState::COMPLETE:
-			return "COMPLETE";
-		case TaskState::CANT_BUILD_HERE:
-			return "CANT_BUILD_HERE";
-		case TaskState::ADDON_BLOCKED:
-			return "ADDON_BLOCKED";
-	}
-	return "UNKNOWN";
-}
-
-enum class TaskType {
-	UNIT,
-	RESEARCH,
-	UPGRADE,
-};
-
-struct Task {
-	BWAPI::UnitType who;
-
-	union {
-		BWAPI::UnitType unit;
-		BWAPI::TechType research;
-		BWAPI::UpgradeType upgrade;
-	} what;
-	TaskType type;
-
-	BWAPI::TilePosition where;
-	TaskState state;
-
-	BWAPI::Unit assigned_unit;
-};
+const int MAX_SUPPLY = 400;
 
 struct Context {
 	BWAPI::Unit base;
@@ -56,6 +11,13 @@ struct Context {
 	int reserved_minerals;
 	int reserved_gas;
 	int geysers;
+
+	static BWAPI::Unit pick_random_unit(BWAPI::Unitset &units)
+	{
+		auto it = units.begin();
+		std::advance(it, rand() % units.size());
+		return *it;
+	}
 
 	int get_minerals() const
 	{
@@ -66,14 +28,21 @@ struct Context {
 	{
 		return BWAPI::Broodwar->self()->gas() - reserved_gas;
 	}
+
+	bool has_enough_resources(int req_minerals, int req_gas) const
+	{
+		return get_minerals() >= req_minerals && get_gas() >= req_gas;
+	}
+
+	bool has_enough_resources(BWAPI::UnitType type) const
+	{
+		return has_enough_resources(type.mineralPrice(), type.gasPrice());
+	}
+
+	BWAPI::Unit pick_random_mineral()
+	{
+		return pick_random_unit(mineral_fields);
+	}
 };
 
-inline BWAPI::Unit pick_random_unit(BWAPI::Unitset &units)
-{
-	auto it = units.begin();
-	std::advance(it, rand() % units.size());
-	return *it;
-}
-
 #endif
-

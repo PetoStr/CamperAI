@@ -5,6 +5,9 @@
 using namespace std;
 using namespace BWAPI;
 
+const int MAX_EXPAND_DIST = 50;
+const int EXTRA_SDEPOT_THRESHOLD = 70;
+
 static TilePosition find_closest_geyser()
 {
 	TilePosition center = BWEB::Map::getMainTile();
@@ -22,7 +25,7 @@ static TilePosition find_closest_geyser()
 	return best_pos;
 }
 
-// try to find suitable position by testing aroud quad of size `dist`
+// try to find suitable position by testing around a quad of size `dist`
 static TilePosition try_expand(Unit builder, TilePosition origin, UnitType type, int dist)
 {
 	int width = type.tileWidth();
@@ -55,12 +58,12 @@ TilePosition Build::fix_build_tile(Unit builder, UnitType type, TilePosition ori
 	TilePosition pos = TilePositions::Invalid;
 
 	int dist = 0;
-	while (!pos && dist < 50) {
+	while (!pos.isValid() && dist < MAX_EXPAND_DIST) {
 		dist++;
 		pos = try_expand(builder, origin, type, dist);
 	}
 
-	if (pos != TilePositions::Invalid) {
+	if (pos.isValid()) {
 		return pos;
 	} else {
 		return this->find_build_tile(type);
@@ -107,7 +110,7 @@ void Build::create_wall()
 void Build::create_build_order(Context &ctx)
 {
 
-	BWEB::Wall *wall = BWEB::Walls::getClosestWall(BWEB::Map::getMainTile());
+	auto *wall = BWEB::Walls::getClosestWall(BWEB::Map::getMainTile());
 
 	if (wall == nullptr) {
 		Broodwar << "No wall has been found" << endl;
@@ -199,13 +202,6 @@ void Build::create_build_order(Context &ctx)
 		.where = TilePositions::None,
 		.state = TaskState::UNASSIGNED,
 	});
-	this->build_order.push_back(Task {
-		.who = UnitTypes::Terran_SCV,
-		.what = { .unit = UnitTypes::Terran_Engineering_Bay },
-		.type = TaskType::UNIT,
-		.where = TilePositions::None,
-		.state = TaskState::UNASSIGNED,
-	});
 	if (defense_it != defense_tiles.end()) {
 		this->build_order.push_back(Task {
 			.who = UnitTypes::Terran_SCV,
@@ -216,6 +212,13 @@ void Build::create_build_order(Context &ctx)
 		});
 		++defense_it;
 	}
+	this->build_order.push_back(Task {
+		.who = UnitTypes::Terran_SCV,
+		.what = { .unit = UnitTypes::Terran_Engineering_Bay },
+		.type = TaskType::UNIT,
+		.where = TilePositions::None,
+		.state = TaskState::UNASSIGNED,
+	});
 	this->build_order.push_back(Task {
 		.who = UnitTypes::Terran_Factory,
 		.what = { .unit = UnitTypes::Terran_Siege_Tank_Tank_Mode },
@@ -234,6 +237,13 @@ void Build::create_build_order(Context &ctx)
 		++defense_it;
 	}
 	this->build_order.push_back(Task {
+		.who = UnitTypes::Terran_SCV,
+		.what = { .unit = UnitTypes::Terran_Missile_Turret },
+		.type = TaskType::UNIT,
+		.where = TilePositions::None,
+		.state = TaskState::UNASSIGNED,
+	});
+	this->build_order.push_back(Task {
 		.who = UnitTypes::Terran_Factory,
 		.what = { .unit = UnitTypes::Terran_Siege_Tank_Tank_Mode },
 		.type = TaskType::UNIT,
@@ -249,6 +259,13 @@ void Build::create_build_order(Context &ctx)
 			.state = TaskState::UNASSIGNED,
 		});
 	}
+	this->build_order.push_back(Task {
+		.who = UnitTypes::Terran_SCV,
+		.what = { .unit = UnitTypes::Terran_Bunker },
+		.type = TaskType::UNIT,
+		.where = TilePositions::None,
+		.state = TaskState::UNASSIGNED,
+	});
 	this->build_order.push_back(Task {
 		.who = UnitTypes::Terran_SCV,
 		.what = { .unit = UnitTypes::Terran_Academy },
@@ -319,7 +336,7 @@ void Build::create_build_order(Context &ctx)
 		.where = TilePositions::None,
 		.state = TaskState::UNASSIGNED,
 	});
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 3; i++) {
 		this->build_order.push_back(Task {
 			.who = UnitTypes::Terran_SCV,
 			.what = { .unit = UnitTypes::Terran_Missile_Turret },
@@ -375,13 +392,6 @@ void Build::create_build_order(Context &ctx)
 		.state = TaskState::UNASSIGNED,
 	});
 	this->build_order.push_back(Task {
-		.who = UnitTypes::Terran_SCV,
-		.what = { .unit = UnitTypes::Terran_Bunker },
-		.type = TaskType::UNIT,
-		.where = TilePositions::None,
-		.state = TaskState::UNASSIGNED,
-	});
-	this->build_order.push_back(Task {
 		.who = UnitTypes::Terran_Armory,
 		.what = { .upgrade = UpgradeTypes::Terran_Ship_Weapons },
 		.type = TaskType::UPGRADE,
@@ -413,13 +423,14 @@ void Build::create_build_order(Context &ctx)
 
 void Build::notify_actor(Task *task)
 {
-	Actor *actor = this->assigned_build_tasks[task];
+	auto &actor = this->assigned_build_tasks[task];
 	if (actor) actor->on_task_completion();
 }
 
 void Build::remove_build_type(BWAPI::UnitType type)
 {
-	for (auto it = this->build_order.begin(); it != this->build_order.end(); ++it) {
+	auto &build = this->build_order;
+	for (auto it = build.begin(); it != build.end(); ++it) {
 		if (it->type == TaskType::UNIT && it->what.unit == type) {
 			this->notify_actor(&(*it));
 			this->build_order.erase(it);
@@ -444,7 +455,8 @@ void Build::on_unit_complete(Context &ctx, Unit unit)
 
 void Build::on_unit_create(Context &ctx, Unit unit)
 {
-	for (auto it = this->build_order.begin(); it != this->build_order.end(); ++it) {
+	auto &build = this->build_order;
+	for (auto it = build.begin(); it != build.end(); ++it) {
 		if (it->type != TaskType::UNIT) {
 			continue;
 		}
@@ -455,8 +467,11 @@ void Build::on_unit_create(Context &ctx, Unit unit)
 			this->notify_actor(&(*it));
 			this->build_order.erase(it);
 			if (task.what.unit.isBuilding()) {
-				ctx.reserved_minerals -= task.what.unit.mineralPrice();
-				ctx.reserved_gas -= task.what.unit.gasPrice();
+				int minerals = task.what.unit.mineralPrice();
+				int gas = task.what.unit.gasPrice();
+
+				ctx.reserved_minerals -= minerals;
+				ctx.reserved_gas -= gas;
 			}
 			break;
 		}
@@ -491,12 +506,12 @@ void Build::on_unit_destroy(Context &ctx, BWAPI::Unit unit)
 void Build::check_supply()
 {
 	Player player = Broodwar->self();
-	if (player->supplyTotal() >= 400) return;
+	if (player->supplyTotal() >= MAX_SUPPLY) return;
 
 	int scale = 5 + player->supplyUsed() / 20;
-	int extra = player->supplyUsed() >= 70;
+	int extra = player->supplyUsed() >= EXTRA_SDEPOT_THRESHOLD;
 	if (player->supplyTotal() - player->supplyUsed() <= scale
-	    && !this->building_depot) {
+			&& !this->building_depot) {
 		for (int i = 0; i <= extra; i++) {
 			this->build_order.push_front(Task {
 				.who = UnitTypes::Terran_SCV,
@@ -510,7 +525,7 @@ void Build::check_supply()
 	}
 }
 
-static Actor *give_order(Task *task, Context &ctx, map<Unit, Actor *> &actors)
+static shared_ptr<Actor> give_order(Task *task, Context &ctx, ActorMap &actors)
 {
 	Player player = Broodwar->self();
 	for (auto &unit : player->getUnits()) {
@@ -518,7 +533,7 @@ static Actor *give_order(Task *task, Context &ctx, map<Unit, Actor *> &actors)
 			continue;
 		}
 
-		auto actor = actors[unit];
+		auto &actor = actors[unit];
 		if (actor && actor->assign_task(ctx, task)) {
 			task->assigned_unit = unit;
 			return actor;
@@ -528,14 +543,14 @@ static Actor *give_order(Task *task, Context &ctx, map<Unit, Actor *> &actors)
 	return nullptr;
 }
 
-bool Build::assign_unit_task(Task *task, Context &ctx, map<Unit, Actor *> &actors)
+bool Build::assign_unit_task(Task *task, Context &ctx, ActorMap &actors)
 {
 	if (task->what.unit.isBuilding()
 	    && task->where == TilePositions::None) {
 		task->where = this->find_build_tile(task->what.unit);
 	}
 
-	Actor *actor = give_order(task, ctx, actors);
+	shared_ptr<Actor> actor = give_order(task, ctx, actors);
 
 	if (actor && task->what.unit.isBuilding()) {
 		ctx.reserved_minerals += task->what.unit.mineralPrice();
@@ -550,9 +565,9 @@ bool Build::assign_unit_task(Task *task, Context &ctx, map<Unit, Actor *> &actor
 	return false;
 }
 
-bool Build::assign_research_task(Task *task, Context &ctx, map<Unit, Actor *> &actors)
+bool Build::assign_research_task(Task *task, Context &ctx, ActorMap &actors)
 {
-	Actor *actor = give_order(task, ctx, actors);
+	shared_ptr<Actor> actor = give_order(task, ctx, actors);
 	if (actor && task->what.unit.isBuilding()) {
 		return true;
 	}
@@ -569,9 +584,9 @@ bool Build::assign_research_task(Task *task, Context &ctx, map<Unit, Actor *> &a
 	return false;
 }
 
-bool Build::assign_upgrade_task(Task *task, Context &ctx, map<Unit, Actor *> &actors)
+bool Build::assign_upgrade_task(Task *task, Context &ctx, ActorMap &actors)
 {
-	Actor *actor = give_order(task, ctx, actors);
+	shared_ptr<Actor> actor = give_order(task, ctx, actors);
 	if (actor && task->what.unit.isBuilding()) {
 		return true;
 	}
@@ -588,7 +603,7 @@ bool Build::assign_upgrade_task(Task *task, Context &ctx, map<Unit, Actor *> &ac
 	return false;
 }
 
-bool Build::assign_task(Task *task, Context &ctx, map<Unit, Actor *> &actors)
+static pair<int, int> get_task_price(const Task *task)
 {
 	int mineral_price;
 	int gas_price;
@@ -605,10 +620,22 @@ bool Build::assign_task(Task *task, Context &ctx, map<Unit, Actor *> &actors)
 			mineral_price = task->what.upgrade.mineralPrice();
 			gas_price = task->what.upgrade.gasPrice();
 			break;
+		case TaskType::NONE:
+			mineral_price = 0;
+			gas_price = 0;
+			break;
 	}
 
-	if (ctx.get_minerals() >= mineral_price
-	    && ctx.get_gas() >= gas_price) {
+	return make_pair(mineral_price, gas_price);
+}
+
+bool Build::assign_task(Task *task, Context &ctx, ActorMap &actors)
+{
+	auto res = get_task_price(task);
+	int mineral_price = res.first;
+	int gas_price = res.second;
+
+	if (ctx.has_enough_resources(mineral_price, gas_price)) {
 		switch (task->type) {
 			case TaskType::UNIT:
 				return this->assign_unit_task(task, ctx, actors);
@@ -616,13 +643,15 @@ bool Build::assign_task(Task *task, Context &ctx, map<Unit, Actor *> &actors)
 				return this->assign_research_task(task, ctx, actors);
 			case TaskType::UPGRADE:
 				return this->assign_upgrade_task(task, ctx, actors);
+			case TaskType::NONE:
+				return false;
 		}
 	}
 
 	return false;
 }
 
-void Build::handle_build_order(Context &ctx, map<Unit, Actor *> &actors)
+void Build::handle_build_order(Context &ctx, ActorMap &actors)
 {
 	this->check_supply();
 
@@ -645,7 +674,7 @@ void Build::handle_build_order(Context &ctx, map<Unit, Actor *> &actors)
 				break;
 			case TaskState::COMPLETE:
 				if (it->type == TaskType::RESEARCH
-						|| it->type == TaskType::UPGRADE) {
+				    || it->type == TaskType::UPGRADE) {
 					it = this->build_order.erase(it);
 				} else {
 					++it;
@@ -655,7 +684,8 @@ void Build::handle_build_order(Context &ctx, map<Unit, Actor *> &actors)
 				int width = it->what.unit.tileWidth();
 				int height = it->what.unit.tileHeight();
 				BWEB::Map::removeUsed(it->where, width, height);
-				it->where = this->fix_build_tile(it->assigned_unit, it->what.unit, it->where);
+				it->where = this->fix_build_tile(it->assigned_unit,
+						it->what.unit, it->where);
 				BWEB::Map::addUsed(it->where, it->what.unit);
 				++it;
 				break;

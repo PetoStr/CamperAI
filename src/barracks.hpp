@@ -9,7 +9,7 @@ class Barracks: public Actor {
 	BWAPI::Unit unit;
 public:
 	Barracks(BWAPI::Unit);
-	void act(Context &ctx);
+	void act(Context &ctx) override;
 };
 
 #endif

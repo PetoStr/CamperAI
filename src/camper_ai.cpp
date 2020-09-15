@@ -26,12 +26,9 @@
 using namespace std;
 using namespace BWAPI;
 
-namespace { auto &game_map = BWEM::Map::Instance(); }
+static auto &game_map = BWEM::Map::Instance();
 
-bool show_bullets;
-bool show_visibility_data;
-
-void send_workers_to_refinery(Unit refinery)
+static void send_workers_to_refinery(Unit refinery)
 {
 	Unitset close_workers = refinery->getUnitsInRadius(500, Filter::IsWorker);
 	int total_workers = 1;
@@ -47,7 +44,7 @@ void send_workers_to_refinery(Unit refinery)
 	}
 }
 
-void draw_build_order(const list<Task> &build_order)
+static void draw_build_order(const list<Task> &build_order)
 {
 	int line = 1;
 	Broodwar->drawTextScreen(5, 0, "Build order:");
@@ -63,6 +60,9 @@ void draw_build_order(const list<Task> &build_order)
 			case TaskType::UPGRADE:
 				what = task.what.upgrade.c_str();
 				break;
+			case TaskType::NONE:
+				what = "Unknown";
+				break;
 		}
 
 		Broodwar->drawTextScreen(5, 16 * line, "%s: %s (%s)",
@@ -76,71 +76,14 @@ void draw_build_order(const list<Task> &build_order)
 	}
 }
 
-void draw_stats()
-{
-	int line = 1;
-	Broodwar->drawTextScreen(5, 96, "I have %d units:", Broodwar->self()->allUnitCount() );
-	for (auto& unitType : UnitTypes::allUnitTypes()) {
-		int count = Broodwar->self()->allUnitCount(unitType);
-		if (count) {
-			Broodwar->drawTextScreen(5, 96 + 16*line, "- %d %s%c", count, unitType.c_str(), count == 1 ? ' ' : 's');
-			++line;
-		}
-	}
-}
-
-void drawBullets()
-{
-	for (auto &b : Broodwar->getBullets())
-	{
-		Position p = b->getPosition();
-		double velocityX = b->getVelocityX();
-		double velocityY = b->getVelocityY();
-		Broodwar->drawLineMap(p, p + Position((int)velocityX, (int)velocityY), b->getPlayer() == Broodwar->self() ? Colors::Green : Colors::Red);
-		Broodwar->drawTextMap(p, "%c%s", b->getPlayer() == Broodwar->self() ? Text::Green : Text::Red, b->getType().c_str());
-	}
-}
-
-void drawVisibilityData()
-{
-	int wid = Broodwar->mapHeight(), hgt = Broodwar->mapWidth();
-	for ( int x = 0; x < wid; ++x )
-		for ( int y = 0; y < hgt; ++y )
-		{
-			if ( Broodwar->isExplored(x, y) )
-				Broodwar->drawDotMap(x*32+16, y*32+16, Broodwar->isVisible(x, y) ? Colors::Green : Colors::Blue);
-			else
-				Broodwar->drawDotMap(x*32+16, y*32+16, Colors::Red);
-		}
-}
-
-void showPlayers()
-{
-	Playerset players = Broodwar->getPlayers();
-	for(auto p : players)
-		Broodwar << "Player [" << p->getID() << "]: " << p->getName() << " is in force: " << p->getForce()->getName() << endl;
-}
-
-void showForces()
-{
-	Forceset forces=Broodwar->getForces();
-	for(auto f : forces)
-	{
-		Playerset players = f->getPlayers();
-		Broodwar << "Force " << f->getName() << " has the following players:" << endl;
-		for(auto p : players)
-			Broodwar << "  - Player [" << p->getID() << "]: " << p->getName() << endl;
-	}
-}
-
 void draw_game_map()
 {
-	/*try {
+	try {
 		BWEM::utils::gridMapExample(game_map);
 		BWEM::utils::drawMap(game_map);
 	} catch (const exception &e) {
 		Broodwar << "Exception: " << e.what() << endl;
-	}*/
+	}
 	BWEB::Map::draw();
 }
 
@@ -149,23 +92,15 @@ CamperAI::CamperAI()
 	this->ctx = Context { 0 };
 }
 
-CamperAI::~CamperAI()
-{
-	for (auto p : this->actors) {
-		delete p.second;
-	}
-}
-
 void CamperAI::on_unit_complete(Unit unit)
 {
-	// we do not handle enemies yet
+	// we do not handle enemy units yet
 	if (unit->getPlayer() != Broodwar->self()) {
 		return;
 	}
 
 	this->build.on_unit_complete(this->ctx, unit);
 
-	//Broodwar << unit->getType() << " completed" << endl;
 	switch (unit->getType()) {
 		case UnitTypes::Terran_Supply_Depot:
 			break;
@@ -173,35 +108,35 @@ void CamperAI::on_unit_complete(Unit unit)
 			send_workers_to_refinery(unit);
 			break;
 		case UnitTypes::Terran_Marine:
-			this->actors[unit] = new Marine(unit);
+			this->actors[unit] = make_shared<Marine>(unit);
 			break;
 		case UnitTypes::Terran_Siege_Tank_Tank_Mode:
 		case UnitTypes::Terran_Siege_Tank_Siege_Mode:
-			this->actors[unit] = new Tank(unit);
+			this->actors[unit] = make_shared<Tank>(unit);
 			break;
 		case UnitTypes::Terran_SCV:
-			this->actors[unit] = new SCV(unit);
+			this->actors[unit] = make_shared<SCV>(unit);
 			break;
 		case UnitTypes::Terran_Command_Center:
-			this->actors[unit] = new CommandCenter(unit);
+			this->actors[unit] = make_shared<CommandCenter>(unit);
 			break;
 		case UnitTypes::Terran_Barracks:
-			this->actors[unit] = new Barracks(unit);
+			this->actors[unit] = make_shared<Barracks>(unit);
 			break;
 		case UnitTypes::Terran_Factory:
-			this->actors[unit] = new Factory(unit);
+			this->actors[unit] = make_shared<Factory>(unit);
 			break;
 		case UnitTypes::Terran_Starport:
-			this->actors[unit] = new Starport(unit);
+			this->actors[unit] = make_shared<Starport>(unit);
 			break;
 		case UnitTypes::Terran_Science_Facility:
-			this->actors[unit] = new ScienceFacility(unit);
+			this->actors[unit] = make_shared<ScienceFacility>(unit);
 			break;
 		case UnitTypes::Terran_Comsat_Station:
-			this->actors[unit] = new Comsat(unit);
+			this->actors[unit] = make_shared<Comsat>(unit);
 			break;
 		case UnitTypes::Terran_Battlecruiser:
-			ArmyUnit *bc = new Battlecruiser(unit);
+			auto bc = make_shared<Battlecruiser>(unit);
 			this->actors[unit] = bc;
 			this->army.on_unit_complete(unit, bc);
 			break;
@@ -234,7 +169,7 @@ void CamperAI::on_unit_destroy(Unit unit)
 
 	BWEB::Map::onUnitDestroy(unit);
 
-	Actor *actor = this->actors[unit];
+	auto &actor = this->actors[unit];
 	if (actor) {
 		actor->on_destroy();
 	}
@@ -251,17 +186,10 @@ void CamperAI::on_unit_destroy(Unit unit)
 
 void CamperAI::draw_ui()
 {
-	draw_game_map();
-
-	if (show_bullets)
-		drawBullets();
-
-	if (show_visibility_data)
-		drawVisibilityData();
+	//draw_game_map();
 
 	draw_build_order(this->build.get_build_order());
 
-	//draw_stats();
 	Broodwar->drawTextScreen(300, 0, "APM: %d", Broodwar->getAPM());
 	Broodwar->drawTextScreen(300, 16, "FRAME: %d", Broodwar->getFrameCount());
 }
@@ -304,8 +232,6 @@ static int calc_geyser_cn()
 void CamperAI::init()
 {
 
-	cout << "starting match!" << endl;
-	Broodwar << "The map is " << Broodwar->mapName() << ", a " << Broodwar->getStartLocations().size() << " player map" << endl;
 	// Enable some cheat flags
 	Broodwar->enableFlag(Flag::UserInput);
 	// Uncomment to enable complete map information
@@ -315,16 +241,12 @@ void CamperAI::init()
 	Broodwar->setLocalSpeed(0);
 
 	try {
-		Broodwar << "Map init..." << endl;
-
 		game_map.Initialize();
 		game_map.EnableAutomaticPathAnalysis();
 
 		BWEM::utils::MapPrinter::Initialize(&game_map);
 		BWEM::utils::printMap(game_map);
 		BWEM::utils::pathExample(game_map);
-
-		Broodwar << "Map init finished." << endl;
 	} catch (const exception &e) {
 		Broodwar << "Exception: " << e.what() << endl;
 	}
@@ -333,14 +255,9 @@ void CamperAI::init()
 	BWEB::Blocks::findBlocks();
 	BWEB::Stations::findStations();
 
-	Broodwar << "Walls: " << BWEB::Walls::getWalls().size() << endl;
-
 	srand(chrono::steady_clock::now().time_since_epoch().count());
 
 	this->army.init();
-
-	show_bullets = false;
-	show_visibility_data = false;
 
 	TilePosition start_tile = Broodwar->self()->getStartLocation();
 	Position start_pos = Position(start_tile.x * 32, start_tile.y * 32);
@@ -351,7 +268,4 @@ void CamperAI::init()
 	this->ctx.geysers = calc_geyser_cn();
 
 	this->build.create_build_order(this->ctx);
-
-	Broodwar << "Mineral fields: " << this->ctx.mineral_fields.size() << endl;
-	Broodwar << "Geysers: " << this->ctx.geysers << endl;
 }

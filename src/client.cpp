@@ -20,10 +20,7 @@ void handle_events(CamperAI &ai)
 	for (auto &e : Broodwar->getEvents()) {
 		switch(e.getType()) {
 			case EventType::MatchEnd:
-				if (e.isWinner())
-					Broodwar << "I won the game" << std::endl;
-				else
-					Broodwar << "I lost the game" << std::endl;
+				Broodwar << "gg" << std::endl;
 				break;
 			case EventType::SendText:
 				Broodwar->sendText(e.getText().c_str());
@@ -102,12 +99,10 @@ int main(int argc, const char *argv[])
 {
 	std::cout << "Connecting..." << std::endl;
 	reconnect();
+
 	while (true) {
 		run();
 	}
-
-	std::cout << "Press ENTER to continue..." << std::endl;
-	std::cin.ignore();
 
 	return 0;
 }

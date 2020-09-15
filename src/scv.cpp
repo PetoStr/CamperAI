@@ -5,7 +5,7 @@
 using namespace std;
 using namespace BWAPI;
 
-const int BUILD_DELAY_FRAMES = 5;
+const int CONSTRUCT_MAX_DIST = 160;
 
 SCV::SCV(BWAPI::Unit _unit) : unit(_unit)
 {
@@ -17,41 +17,39 @@ void SCV::act(Context &ctx)
 {
 	Unit scv = this->unit;
 
+	TilePosition &where = this->task->where;
+
 	switch (this->state) {
-		case SCVState::NO_TASK:
-			if (scv->isIdle()) {
-				scv->gather(pick_random_unit(ctx.mineral_fields));
-			}
-			break;
-		case SCVState::MOVING:
-			if (scv->isIdle()) {
-				if (scv->getDistance(Position(this->task->where)) <= 160) {
-					state = SCVState::BUILDING;
-				} else {
-					scv->move(Position(this->task->where));
-				}
-			}
-			break;
-		case SCVState::BUILDING:
-			if (scv->isConstructing()) {
-				this->task->state = TaskState::COMPLETE;
+	case SCVState::NO_TASK:
+		if (scv->isIdle()) {
+			scv->gather(ctx.pick_random_mineral());
+		}
+		break;
+	case SCVState::MOVING:
+		if (scv->isIdle()) {
+			Position where_pos = Position(where);
+			int dist = scv->getDistance(where_pos);
+			if (dist <= CONSTRUCT_MAX_DIST) {
+				state = SCVState::BUILDING;
 			} else {
-				UnitType what = this->task->what.unit;
-				//Broodwar << "Building " << what << endl;
-
-				bool okhere = Broodwar->canBuildHere(this->task->where,
-						what,
-						scv,
-						true);
-
-
-				// TODO handle all build failures
-				if (!okhere || !scv->build(what, this->task->where)) {
-					//Broodwar << "build failed" << endl;
-					this->task->state = TaskState::CANT_BUILD_HERE;
-				}
+				scv->move(where_pos);
 			}
-			break;
+		}
+		break;
+	case SCVState::BUILDING:
+		if (scv->isConstructing()) {
+			this->task->state = TaskState::COMPLETE;
+		} else {
+			UnitType what = this->task->what.unit;
+
+			bool okhere =
+				Broodwar->canBuildHere(where, what, scv, true);
+
+			if (!okhere || !scv->build(what, this->task->where)) {
+				this->task->state = TaskState::CANT_BUILD_HERE;
+			}
+		}
+		break;
 	}
 }
 
@@ -69,7 +67,6 @@ bool SCV::assign_task(Context &ctx, Task *task)
 		return false;
 	}
 
-	//Broodwar << "Moving" << endl;
 	scv->move(Position(task->where));
 	this->task = task;
 	this->state = SCVState::MOVING;

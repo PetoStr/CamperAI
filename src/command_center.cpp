@@ -11,9 +11,10 @@ CommandCenter::CommandCenter(Unit _unit) : unit(_unit)
 void CommandCenter::act(Context &ctx)
 {
 	Player player = Broodwar->self();
-	if (!this->unit->isTraining() && ctx.get_minerals() >= 50
+	UnitType scv = UnitTypes::Terran_SCV;
+	if (!this->unit->isTraining() && ctx.has_enough_resources(scv)
 	    && player->allUnitCount(UnitTypes::Terran_SCV) < this->max_workers) {
-		this->unit->train(UnitTypes::Terran_SCV);
+		this->unit->train(scv);
 	}
 }
 

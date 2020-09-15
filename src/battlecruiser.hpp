@@ -11,8 +11,8 @@ class Battlecruiser: public ArmyUnit {
 	bool new_order;
 public:
 	Battlecruiser(BWAPI::Unit);
-	void act(Context &ctx);
-	void receive_order(ArmyOrder &order);
+	void act(Context &ctx) override;
+	void receive_order(ArmyOrder &order) override;
 };
 
 #endif

@@ -2,8 +2,29 @@
 
 using namespace BWAPI;
 
+const int WAIT_FRAMES = 30;
+
 Comsat::Comsat(Unit _unit) : unit(_unit)
 {
+	this->wait_frames = 0;
+}
+
+void Comsat::scan()
+{
+	Unit comsat = this->unit;
+
+	for (const Player &enemy : Broodwar->enemies()) {
+		for (const Unit &unit : enemy->getUnits()) {
+			if (unit->isVisible()
+			    && !unit->isDetected()
+			    && this->is_ally_close(unit)) {
+				comsat->useTech(TechTypes::Scanner_Sweep,
+						unit->getPosition());
+				this->wait_frames = WAIT_FRAMES;
+				return;
+			}
+		}
+	}
 }
 
 void Comsat::act(Context &ctx)
@@ -14,23 +35,8 @@ void Comsat::act(Context &ctx)
 	}
 
 	Unit comsat = this->unit;
-
-	if (comsat->getEnergy() <= 50) {
-		// no energy for scan
-		return;
-	}
-
-	for (const Player &enemy : Broodwar->enemies()) {
-		for (const Unit &unit : enemy->getUnits()) {
-			if (unit->isVisible()
-			    && !unit->isDetected()
-			    && this->is_ally_close(unit)) {
-				comsat->useTech(TechTypes::Scanner_Sweep,
-						unit->getPosition());
-				this->wait_frames = 20;
-				return;
-			}
-		}
+	if (comsat->getEnergy() >= TechTypes::Scanner_Sweep.energyCost()) {
+		this->scan();
 	}
 }
 

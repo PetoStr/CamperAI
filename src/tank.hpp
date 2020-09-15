@@ -9,7 +9,7 @@ class Tank: public Actor {
 	BWAPI::Unit unit;
 public:
 	Tank(BWAPI::Unit);
-	void act(Context &ctx);
+	void act(Context &ctx) override;
 };
 
 #endif

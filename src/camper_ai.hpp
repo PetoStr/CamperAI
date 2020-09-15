@@ -13,14 +13,13 @@
 using namespace BWAPI;
 
 class CamperAI {
-	std::map<BWAPI::Unit, Actor *> actors;
+	ActorMap actors;
 	Build build;
 	Context ctx;
 	Army army;
 	void draw_ui();
 public:
 	CamperAI();
-	~CamperAI();
 	void init();
 	void update();
 	void on_unit_complete(Unit unit);

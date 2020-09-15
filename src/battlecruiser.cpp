@@ -1,12 +1,17 @@
 #include "battlecruiser.hpp"
 
+#include <cstring>
+
 using namespace BWAPI;
+
+const int GUARD_RANGE = 300;
 
 Battlecruiser::Battlecruiser(Unit _unit) : unit(_unit)
 {
 	this->order = ArmyOrder {
 		.type = Orders::Nothing,
 	};
+	this->new_order = false;
 }
 
 void Battlecruiser::act(Context &ctx)
@@ -21,11 +26,14 @@ void Battlecruiser::act(Context &ctx)
 				this->new_order = false;
 			}
 			break;
-		case Orders::Guard:
-			if (bc->getPosition().getDistance(this->order.where) > 300) {
+		case Orders::Guard: {
+			double order_dist = bc->getPosition()
+				.getDistance(this->order.where);
+			if (order_dist > GUARD_RANGE) {
 				bc->attack(this->order.where);
 			}
 			break;
+		}
 		default:
 			break;
 	}
